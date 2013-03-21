@@ -1,0 +1,203 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title> Test Page </title>
+<script type="text/javascript" src="../json2.js"></script>
+<script  type="text/javascript">
+	
+function init() {
+	// Initialize 
+	//addDebugLine("Enter initialization process.");
+	//addDebugLine("Start message loop.");
+	//messageLoop();
+}
+
+function addDebugLine(line) {
+	var debugLine;
+	var recvMessage;
+
+	debugLine = Date() + ":  ";
+	debugLine += line;
+	debugLine += "\r\n" 
+
+	recvMessage = document.getElementById("recvMessage");
+	recvMessage.value += debugLine;
+	recvMessage.scrollTop = recvMessage.scrollHeight;
+}	
+		
+function sendMessage(message, loop) {
+	var requestURL=document.getElementById("requestUrl").value;
+	var xmlhttp;
+
+	if (window.XMLHttpRequest) {
+		// code for IE7+, Firefox, Chrome, Opera, Safari
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		// code for IE6, IE5
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	xmlhttp.onreadystatechange=function() {
+		if (xmlhttp.readyState == 4) {
+			if (xmlhttp.status == 200) {
+				// Receive response from server
+				responseHandler(xmlhttp.responseText, loop);
+			}
+			else if (xmlhttp.status == 400) {
+				// message error
+				addDebugLine("Sent request is not supportted by Server (400 BAD REQUEST)");	
+				addDebugLine("Error message: " + xmlhttp.responseText);
+			}
+			else if (xmlhttp.status == 404) {
+				// request url is not found
+				addDebugLine("Requested URL is not found on server (404 NOT FOUND)");
+			}
+			else {
+				addDebugLine("Unhandled HTTP response status: " + xmlhttp.status);
+			}
+		}
+	}
+
+
+	addDebugLine("Request URL = " + requestURL);
+	addDebugLine("Request message = " + message);
+	xmlhttp.open("POST", requestURL, true);
+	xmlhttp.send(message);
+
+};
+
+function responseHandler(response, loop) {
+	addDebugLine("Received reaponse = " + response);
+	var json = JSON.parse(response);
+	if(json.pld.aut != undefined){
+		
+		document.getElementById("aut_content").innerHTML = "current Aut: "+json.pld.aut;
+		
+	}
+	
+	
+	var message=document.getElementById("sendMessage").value;
+	if ( loop != 'undefined' && loop ) {
+		setTimeout(function(){sendMessage(message);}, 1000);
+	}
+}
+
+function messageLoop() {
+	addDebugLine("Enter message loop");
+	var responseText;
+	
+	// send request and waiting for response, sync mode
+	responseText = 	sendSyncRequest(document.getElementById('requestUrl').value + "?flag=loop");
+	if (reponseText != null) {
+		// Get response correctly
+		addDebugLine("Received response: " + responseText);
+		try {
+			var jsonResponse = JSON.parse(responseText);
+			// Handle response 
+			
+		}
+		catch (e) {
+			addDebugLine("Parse received message to JSON error: ");
+			addDebugLine("error.name: " + error.name);
+			addDebugLine("error.message: " + error.message);
+			return;
+		}
+	}
+
+	setTimeout(function(){messageLoop();}, 1000);
+}
+
+function sendSyncRequest(requestURL) {
+
+	var xmlhttp;
+	var responseText = null;
+
+	if (window.XMLHttpRequest) {
+		// code for IE7+, Firefox, Chrome, Opera, Safari
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		// code for IE6, IE5
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+	
+	xmlhttp.open("POST", requestURL, false);
+	xmlhttp.send();
+
+	// Wait for response
+	if (xmlhttp.readyState == 4) {
+		if (xmlhttp.status == 200) {
+			// Receive response from server
+			responseText = xmlhttp.responseText;
+			addDebugLine("sendSyncRequest(): Received response: " + responseText);
+		} 
+		else if (xmlhttp.status == 400) {
+			// message error
+			addDebugLine("sendSyncRequest(): Sent request is not supportted by Server (400 BAD REQUEST)");	
+			addDebugLine("Error message: " + xmlhttp.responseText);
+		}
+		else if (xmlhttp.status == 404) {
+			// request url is not found
+			addDebugLine("sendSyncRequest(): Requested URL is not found on server (404 NOT FOUND)");
+		}
+		else {
+			// unhandled HTTP status code
+			addDebugLine("sendSyncRequest(): Unhandled HTTP response status: " + xmlhttp.status);
+		}
+	}
+	
+	return responseText;
+}
+function LoginGetAut(obj){
+	
+	sendMessage("{cod:2020,prm:{lid:'admin@xinhuamm.com',pwd:'3d20dd5f8ad220138049b9a163d32844'}}");
+	
+	
+}
+function loadImage(){
+	var fid=document.getElementById("ImageFileID").value;
+	document.getElementById("ImageDisplay").setAttribute("src", "/XMMServer/GetFile?fid=" + fid);
+}
+
+// initilization when page load
+if (document.addEventListener) {
+	document.addEventListener("DOMContentLoaded", init, false);
+}
+else {
+	window.onload = function() {
+		init();
+	}
+}
+</script>
+</head>
+<body>
+<div>
+<label> Request URL: </label> <input id="requestUrl" type="text" value="/WebServerFramework/Main"/> 
+<input type="button" onclick="LoginGetAut(this);" value="login get aut" />
+<div id="aut_content"></div>
+</div>
+<p>Message to be sent:<b>{"Action":{"Version":"1.0.0","Code":1000,"ActionName":"ACTION_CODE_GETORDERLIST","Flags":0},"Parameter":{}}</b></p>
+<form>
+<textarea id="sendMessage" name="sendMessage" style="width:100%; height:200px;">
+
+</textarea>
+</form>
+<input id="sendButton" name="sendButton" type="button" value="Click to send message" onclick='javascript:var message=document.getElementById("sendMessage").value;sendMessage(message);'/>
+<!--input id="startButton" name="startButton" type="button" value="Click to start loop" onclick='startMessageLoop()'/-->
+<p>Received Message:</p>
+<form>
+<textarea id="recvMessage" name="recvMessage" style="width:100%; height:200px;">
+</textarea>
+</form>
+<input id="clearButton" name="clearButton" type="button" value="Click to clear message" onclick='javascript:document.getElementById("recvMessage").value=""'/>
+<div style="margin-top: 50px;">
+<label> 图片文件FID: </label><input id="ImageFileID" type="text" /> 
+<input type="button" value="查看图片" onclick="loadImage()" />
+<p/>
+<img id="ImageDisplay" src="" />
+
+</div>
+</body>
+</html>
